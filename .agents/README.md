@@ -9,7 +9,7 @@ This directory contains specialized agent skills integrated from external reposi
 | `solid-best-practices`   | Adapted from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices) | 1.0.0   | 2026-04-16   | Solid 2.0 performance optimization (70+ rules)       |
 | `composition-patterns`   | Adapted from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills/tree/main/skills/composition-patterns) | 1.0.0   | 2026-04-16   | Component composition patterns for Solid             |
 | `react-view-transitions` | Adapted from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-view-transitions) | 1.0.0   | 2026-04-16   | View Transition API guide (adapted for TanStack Start) |
-| `versioncontrol`         | local                                                                                                           | -       | -            | Git/jj version control workflow enforcement          |
+| `versioncontrol`         | local                                                                                                           | -       | -            | Git/jj version control workflow (see ~/git/effect-tanstack-baseline) |
 
 ## Source Repository
 
