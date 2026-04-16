@@ -85,7 +85,7 @@ The `nav-forward` and `nav-back` CSS classes from `css-recipes.md` produce horiz
 Extract this into a reusable component so every page doesn't repeat the verbose type map:
 
 ```jsx
-export function DirectionalTransition({ children }: { children: React.ReactNode }) {
+export function DirectionalTransition({ children }: { children: JSX.Element }) {
   return (
     <ViewTransition
       enter={{ 'nav-forward': 'nav-forward', 'nav-back': 'nav-back', default: 'none' }}
@@ -179,7 +179,7 @@ If any path produces no animation or competing animations, revisit the relevant 
 - **Writing custom animation CSS** — the recipes in `css-recipes.md` handle staggered timing, motion blur on morphs, and reduced motion. Copy them; don't reinvent them.
 - **Missing `default: "none"` in type-keyed objects** — TypeScript requires a `default` key, and without it the fallback is `"auto"` which fires on every transition.
 - **Type maps on Suspense reveals** — Suspense resolves fire as separate transitions with no type. Type-keyed props won't match — use simple string props instead.
-- **Raw `viewTransitionName` CSS to trigger animations** — React only calls `document.startViewTransition` when `<ViewTransition>` components are in the tree. A bare `viewTransitionName` style is for isolating elements from a parent's snapshot, not for triggering animations.
+- **Raw `viewTransitionName` CSS to trigger animations** — The framework only calls `document.startViewTransition` when `<ViewTransition>` components are in the tree. A bare `viewTransitionName` style is for isolating elements from a parent's snapshot, not for triggering animations.
 - **`update` trigger for same-route navigations** — nested VTs inside the content steal the mutation from the parent, so `update` never fires on the outer VT. Use `key` + `name` + `share` instead.
 - **Named VT in a reusable component** — if a component with a named VT is rendered in both a modal/popover _and_ a page, both mount simultaneously and break the morph. Make the name conditional or move it to the specific consumer.
 - **`router.back()` for back navigation** — `router.back()` triggers synchronous `popstate`, incompatible with view transitions. Use `router.push()` with an explicit URL.

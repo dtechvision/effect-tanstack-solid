@@ -129,7 +129,7 @@ type TransitionMap =
   & Partial<Record<Exclude<TransitionType, "default">, AnimationType>>
 
 export function HorizontalTransition({ children, enter, exit }: {
-  children: React.ReactNode
+  children: JSX.Element
   enter: TransitionMap
   exit: TransitionMap
 }) {
@@ -190,7 +190,7 @@ Give matching controls in fallback and content the same `viewTransitionName`:
 <input placeholder="Search..." style={{ viewTransitionName: 'search-input' }} />
 ```
 
-Don't put manual `viewTransitionName` on the root DOM node inside `<ViewTransition>` — React's auto-generated name overrides it.
+Don't put manual `viewTransitionName` on the root DOM node inside `<ViewTransition>` — The auto-generated name overrides it.
 
 ## Reusable Animated Collapse
 
@@ -297,7 +297,7 @@ The `types` array (second argument) lets you vary animation based on transition 
 
 **`flushSync` skips animations:** Use `startTransition` instead.
 
-**Only updates animate (no enter/exit):** Without `<Suspense>`, React treats swaps as updates. Conditionally render the VT itself, or wrap in `<Suspense>`.
+**Only updates animate (no enter/exit):** Without async boundaries, the framework treats swaps as updates. Conditionally render the VT itself, or wrap in a Show component.
 
 **Layout VT prevents page VTs from animating:** Nested VTs never fire enter/exit inside a parent VT. If your layout has a VT wrapping `{children}`, page-level enter/exit will silently not work. Remove the layout VT.
 
