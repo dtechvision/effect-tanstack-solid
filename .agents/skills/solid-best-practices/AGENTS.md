@@ -1,13 +1,11 @@
 # Solid 2.0 Best Practices
 
 **Version 1.0.0**  
-Adapted from Vercel Engineering React patterns  
 April 2026
 
 > **Note:**  
 > This document is for agents and LLMs to follow when maintaining,  
-> generating, or refactoring Solid 2.0 codebases. Adapted from React patterns  
-> for Solid's fine-grained reactivity model.
+> generating, or refactoring Solid 2.0 codebases.
 
 ---
 
@@ -15,7 +13,7 @@ April 2026
 
 Comprehensive performance optimization guide for Solid 2.0 applications. Contains 40+ rules across 8 categories, prioritized by impact from critical (eliminating waterfalls, reducing bundle size) to incremental (advanced patterns). Each rule includes detailed explanations, real-world examples comparing incorrect vs. correct implementations.
 
-**Key difference from React:** Solid uses fine-grained reactivity, not re-renders. Components execute once, and signals update only the specific DOM nodes they affect.
+**Key Principle:** Solid uses fine-grained reactivity, not re-renders. Components execute once, and signals update only the specific DOM nodes they affect.
 
 ---
 
@@ -40,8 +38,6 @@ Waterfalls are sequences where each async operation waits for the previous one t
 
 Don't await to check a condition that could be checked synchronously.
 
-**Solid context:** With Effect RPC, use `runApi` only after cheap checks.
-
 ```tsx
 // ❌ Waterfall: awaits before checking cheap condition
 function Dashboard() {
@@ -62,7 +58,6 @@ function Dashboard() {
 function Dashboard() {
   const [user] = createResource(() => runApi(client => client.rpc.getUser()))
   
-  // Check isActive before fetching data
   const [data] = createResource(
     () => user()?.isActive ? user() : null,
     (u) => u ? runApi(client => client.rpc.getData()) : null
@@ -440,20 +435,15 @@ function UserProfile() {
 }
 ```
 
-### 5.3 No Need for useCallback
+### 5.3 Functions Are Naturally Stable
 
 In Solid, functions are naturally stable - they don't cause re-renders because components don't re-render.
 
 ```tsx
-// ❌ React: need useCallback
-const handleClick = useCallback(() => {
-  doSomething()
-}, [dep])
-
 // ✅ Solid: functions are stable
 function Button(props: { onClick: () => void }) {
   const handleClick = () => {
-    console.log("clicked")  // Runs when clicked, not on every "render"
+    console.log("clicked")  // Runs when clicked, not on every update
     props.onClick()
   }
   
@@ -506,7 +496,7 @@ function Canvas() {
 ### 6.1 Don't Define Components Inside Components
 
 ```tsx
-// ❌ Inner component recreated (not in Solid, but still bad practice)
+// ❌ Inner component at module scope
 function Parent() {
   const Inner = () => <div>{props.value}</div>
   return <Inner />
@@ -626,28 +616,7 @@ function UserName() {
 }
 ```
 
-### 8.2 Store Event Handlers
-
-Solid functions are stable, but if you need to swap implementations:
-
-```tsx
-function Component() {
-  const [handler, setHandler] = createSignal(() => console.log("default"))
-  
-  const onClick = () => handler()()
-  
-  return (
-    <div>
-      <button onClick={onClick}>Action</button>
-      <button onClick={() => setHandler(() => () => console.log("new"))}>
-        Change Handler
-      </button>
-    </div>
-  )
-}
-```
-
-### 8.3 Batch Multiple Updates
+### 8.2 Batch Multiple Updates
 
 ```tsx
 // ❌ Multiple signal updates (each triggers independently)
@@ -671,25 +640,30 @@ const updateUser = () => {
 
 ---
 
-## Summary: React → Solid Mappings
-
-| React | Solid 2.0 | Notes |
-|-------|-----------|-------|
-| `useState(initial)` | `createSignal(initial)` | Add `()` to read value |
-| `useEffect(fn, deps)` | `createEffect(fn)` | Automatic dependency tracking |
-| `useMemo(fn, deps)` | `createMemo(fn)` | Automatic dependency tracking |
-| `useCallback(fn, deps)` | **Not needed** | Functions are stable |
-| `useRef(initial)` | `let ref = initial` | Or use signals for reactive refs |
-| `useContext(Context)` | `useContext(Context)` | Same API |
-| `Suspense` | `Show` + `lazy` | Different pattern |
-| `startTransition` | `startTransition` | From `solid-js` |
-| `useNavigate` | `useNavigate` | From `@tanstack/solid-router` |
-
-## Key Solid Principles
+## Solid 2.0 Core Principles
 
 1. **Fine-grained reactivity:** Only updated values trigger DOM changes
 2. **Components run once:** No re-renders, setup happens once
 3. **Signals are getters:** Call `signal()` to read current value
 4. **Effects track automatically:** No dependency arrays needed
-5. **Functions are stable:** No useCallback equivalent needed
-6. **Show over Suspense:** Explicit conditional rendering
+5. **Functions are stable:** No callback memoization needed
+6. **Show over conditionals:** Explicit conditional rendering
+7. **For over map:** Proper list rendering with keying
+
+## Quick Reference: Solid Primitives
+
+| Primitive | Purpose | Example |
+|-----------|---------|---------|
+| `createSignal` | Reactive state | `const [count, setCount] = createSignal(0)` |
+| `createEffect` | Side effects | `createEffect(() => console.log(count()))` |
+| `createMemo` | Computed values | `const doubled = createMemo(() => count() * 2)` |
+| `createResource` | Async data | `const [data] = createResource(fetcher)` |
+| `Show` | Conditional | `<Show when={data()} fallback={<Loading />}>` |
+| `For` | List rendering | `<For each={items()}>{item => <Item />}</For>` |
+| `batch` | Batch updates | `batch(() => { setA(1); setB(2) })` |
+| `onMount` | Mount effect | `onMount(() => { ... })` |
+| `onCleanup` | Cleanup | `onCleanup(() => { ... })` |
+| `lazy` | Code splitting | `const Comp = lazy(() => import("./Comp"))` |
+| `startTransition` | Non-urgent | `startTransition(() => setPage(newPage))` |
+| `useNavigate` | Navigation | `const navigate = useNavigate()` |
+| `runApi` | Effect RPC | `runApi(c => c.rpc.todos_list())` |

@@ -1,30 +1,15 @@
 ---
 name: solid-best-practices
-description: Solid 2.0 performance optimization guidelines adapted from Vercel React patterns. This skill should be used when writing, reviewing, or refactoring Solid code to ensure optimal performance patterns. Triggers on tasks involving Solid components, data fetching, bundle optimization, or performance improvements.
+description: Solid 2.0 performance optimization guidelines. Use when writing, reviewing, or refactoring Solid code to ensure optimal performance patterns. Triggers on tasks involving Solid components, data fetching, bundle optimization, or performance improvements.
 license: MIT
 metadata:
-  author: vercel (adapted for Solid)
   version: "1.0.0"
-  source: "https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices"
-  imported: "2026-04-16"
-  commit: "dc8367e"
-  modified: true
-  modifications:
-    - skill: "react-best-practices"
-      adapted_to: "solid-best-practices"
-      changes:
-        - "useState → createSignal"
-        - "useEffect → createEffect"
-        - "useMemo → createMemo"
-        - "remove useCallback (not needed in Solid)"
-        - "Suspense → Show component"
-        - "React.startTransition → Solid.startTransition"
-      reason: "Project uses Solid 2.0 instead of React"
+  updated: "2026-04-16"
 ---
 
 # Solid 2.0 Best Practices
 
-Comprehensive performance optimization guide for Solid 2.0 applications, adapted from Vercel React patterns. Contains 70 rules across 8 categories, prioritized by impact to guide automated refactoring and code generation.
+Comprehensive performance optimization guide for Solid 2.0 applications. Contains 70 rules across 8 categories, prioritized by impact to guide automated refactoring and code generation.
 
 ## When to Apply
 
@@ -36,18 +21,16 @@ Reference these guidelines when:
 - Refactoring existing Solid code
 - Optimizing bundle size or load times
 
-## Solid vs React Quick Reference
+## Core Solid 2.0 Primitives
 
-| React | Solid 2.0 | Notes |
-|-------|-----------|-------|
-| `useState` | `createSignal` | Reactive primitives |
-| `useEffect` | `createEffect` | Re-runs when dependencies change |
-| `useMemo` | `createMemo` | Computed values |
-| `useCallback` | **Not needed** | Functions are stable in Solid |
-| `Suspense` | `Show` component | Conditional rendering with fallback |
-| `startTransition` | `startTransition` | From `solid-js` |
-| `useNavigate` | `useNavigate` | From `@tanstack/solid-router` |
-| Props | Props | Same API |
+| Primitive | Purpose | Example |
+|-----------|---------|---------|
+| `createSignal` | Reactive state | `const [count, setCount] = createSignal(0)` |
+| `createEffect` | Side effects | `createEffect(() => console.log(count()))` |
+| `createMemo` | Computed values | `const doubled = createMemo(() => count() * 2)` |
+| `createResource` | Async data | `const [data] = createResource(fetcher)` |
+| `Show` | Conditional rendering | `<Show when={data()} fallback={<Loading />}>` |
+| `For` | List rendering | `<For each={items()}>{item => <Item />}</For>` |
 
 ## Rule Categories by Priority
 
@@ -57,7 +40,7 @@ Reference these guidelines when:
 | 2        | Bundle Size Optimization  | CRITICAL    | `bundle-`    |
 | 3        | Server-Side Performance   | HIGH        | `server-`    |
 | 4        | Client-Side Data Fetching | MEDIUM-HIGH | `client-`    |
-| 5        | Re-render Optimization    | MEDIUM      | `rerender-`  |
+| 5        | Reactivity Optimization   | MEDIUM      | `reactive-`  |
 | 6        | Rendering Performance     | MEDIUM      | `rendering-` |
 | 7        | JavaScript Performance    | LOW-MEDIUM  | `js-`        |
 | 8        | Advanced Patterns         | LOW         | `advanced-`  |
@@ -69,9 +52,8 @@ Reference these guidelines when:
 - `async-cheap-condition-before-await` - Check cheap sync conditions before awaiting flags or remote values
 - `async-defer-await` - Move await into branches where actually used
 - `async-parallel` - Use Promise.all() for independent operations
-- `async-dependencies` - Use better-all for partial dependencies
 - `async-api-routes` - Start promises early, await late in API routes
-- `async-suspense-boundaries` - Use Show component for async boundaries
+- `async-show-boundaries` - Use Show component for async boundaries
 
 ### 2. Bundle Size Optimization (CRITICAL)
 
@@ -96,22 +78,20 @@ Reference these guidelines when:
 
 ### 4. Client-Side Data Fetching (MEDIUM-HIGH)
 
-- `client-swr-dedup` - Use TanStack Query for automatic request deduplication
+- `client-tanstack-query-dedup` - Use TanStack Query for automatic deduplication
 - `client-event-listeners` - Deduplicate global event listeners
 - `client-passive-event-listeners` - Use passive listeners for scroll
 - `client-localstorage-schema` - Version and minimize localStorage data
 
-### 5. Re-render Optimization (MEDIUM)
+### 5. Reactivity Optimization (MEDIUM)
 
-- `rerender-defer-reads` - Don't subscribe to state only used in callbacks
-- `rerender-memo` - Extract expensive work into memoized components
-- `rerender-memo-with-default-value` - Hoist default non-primitive props
-- `rerender-derived-state` - Subscribe to derived booleans, not raw values
-- `rerender-derived-state-no-effect` - Derive state during render, not effects
-- `rerender-no-inline-components` - Don't define components inside components
-- `rerender-lazy-state-init` - Pass function to createSignal for expensive values
-- `rerender-split-combined-hooks` - Split signals with independent dependencies
-- `rerender-ref-transient-values` - Use refs for transient frequent values
+- `reactive-defer-reads` - Don't subscribe to state only used in callbacks
+- `reactive-memo` - Use createMemo for expensive computations
+- `reactive-derived-state` - Derive state during render, not effects
+- `reactive-split-signals` - Split independent signals for granular updates
+- `reactive-no-inline-components` - Don't define components inside components
+- `reactive-lazy-state-init` - Pass function to createSignal for expensive values
+- `reactive-ref-transient` - Use refs for transient frequent values
 
 ### 6. Rendering Performance (MEDIUM)
 
@@ -129,72 +109,11 @@ Reference these guidelines when:
 - `advanced-store-normalization` - Normalize data in stores
 - `advanced-batch-updates` - Batch multiple signal updates
 
-## Key Solid Patterns
+## Key Solid Principles
 
-### Signals Over Props
-
-```tsx
-// ❌ React style - derived in effect
-function Counter(props: { initial: number }) {
-  const [count, setCount] = createSignal(props.initial)
-  const doubled = () => count() * 2 // Derived value
-}
-
-// ✅ Solid style - fine-grained
-function Counter(props: { initial: number }) {
-  const [count, setCount] = createSignal(props.initial)
-  const doubled = createMemo(() => count() * 2) // Memoized derived
-}
-```
-
-### No useCallback Needed
-
-```tsx
-// ❌ React - need useCallback for stable reference
-function Button({ onClick, children }: { onClick: () => void; children: any }) {
-  const handleClick = useCallback(() => {
-    console.log('clicked')
-    onClick()
-  }, [onClick])
-  return <button onClick={handleClick}>{children}</button>
-}
-
-// ✅ Solid - functions are naturally stable
-function Button(props: { onClick: () => void; children: any }) {
-  const handleClick = () => {
-    console.log('clicked')
-    props.onClick()
-  }
-  return <button onClick={handleClick}>{props.children}</button>
-}
-```
-
-### Show Instead of Suspense
-
-```tsx
-// ❌ React - Suspense for async boundaries
-<Suspense fallback={<Loading />}>
-  <AsyncComponent />
-</Suspense>
-
-// ✅ Solid - Show component
-<Show when={data()} fallback={<Loading />}>
-  {(data) => <Component data={data} />}
-</Show>
-```
-
-### Effects Run Immediately
-
-```tsx
-// Solid - createEffect runs immediately and tracks dependencies
-function Clock() {
-  const [time, setTime] = createSignal(new Date())
-  
-  createEffect(() => {
-    // Runs immediately, then re-runs when time() changes
-    console.log('Time is:', time().toLocaleTimeString())
-  })
-  
-  return <div>{time().toLocaleTimeString()}</div>
-}
-```
+1. **Fine-grained reactivity:** Only updated values trigger DOM changes
+2. **Components run once:** No re-renders, setup happens once
+3. **Signals are getters:** Call `signal()` to read current value
+4. **Effects track automatically:** No dependency arrays needed
+5. **Functions are stable:** No callback memoization needed
+6. **Show over conditionals:** Explicit conditional rendering with fallback

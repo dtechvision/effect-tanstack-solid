@@ -1,13 +1,11 @@
 # Composition Patterns
 
 **Version 1.0.0**  
-Adapted for Solid 2.0  
 April 2026
 
 > **Note:**  
 > This document is for agents and LLMs to follow when maintaining,  
-> generating, or refactoring Solid 2.0 codebases using composition. Adapted  
-> from React patterns for Solid's reactivity model.
+> generating, or refactoring Solid 2.0 codebases using composition.
 
 ---
 
@@ -373,15 +371,9 @@ export function SecondaryButton(props: { children: JSX.Element }) {
 
 **Impact: MEDIUM (simpler API, better TypeScript inference)**
 
-Use children for composition instead of renderX props.
+Use children for composition.
 
 ```tsx
-// ❌ Render prop
-<DataTable
-  data={items}
-  renderRow={(item) => <Row item={item} />}
-/>
-
 // ✅ Children composition
 <DataTable data={items}>
   {item => <Row item={item} />}
@@ -419,7 +411,7 @@ Use children for composition instead of renderX props.
 
 ---
 
-## Summary: Solid 2.0 Composition
+## Solid 2.0 Composition
 
 Solid's component model makes composition natural:
 
@@ -427,13 +419,11 @@ Solid's component model makes composition natural:
 2. **Props are reactive** - passed as-is, reading triggers updates
 3. **Context is the same** - `createContext`, `useContext`, `Provider`
 4. **No re-renders** - children are stable references
-5. **Dynamic components** - `Show`, `For`, `Switch` handle conditionals
-6. **Slots via props** - `children` prop for nested content
+5. **Slots via props** - `children` prop for nested content
 
-**Key differences from React:**
+**Key features:**
 
 - No `key` prop needed (Solid tracks identity automatically)
 - No `useMemo` for children (they're already stable)
-- No `cloneElement` needed (props are reactive)
 - `Show` instead of conditional rendering with `&&`
 - `For` instead of `map` for lists (proper keying)

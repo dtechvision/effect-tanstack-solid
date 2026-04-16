@@ -4,23 +4,11 @@ description:
   Component composition patterns that scale. Use when refactoring components with
   boolean prop proliferation, building flexible component libraries, or
   designing reusable APIs. Triggers on tasks involving compound components,
-  context providers, or component architecture. Adapted for Solid 2.0.
+  context providers, or component architecture.
 license: MIT
 metadata:
-  author: vercel (adapted for Solid)
   version: '1.0.0'
-  source: "https://github.com/vercel-labs/agent-skills/tree/main/skills/composition-patterns"
-  imported: "2026-04-16"
-  commit: "7f05869"
-  modified: true
-  modifications:
-    - skill: "composition-patterns"
-      adapted_for: "Solid 2.0"
-      changes:
-        - "React references → Solid 2.0"
-        - "useContext → useContext (same API)"
-        - "Removed forwardRef section (not applicable)"
-      reason: "Project uses Solid 2.0 instead of React"
+  updated: '2026-04-16'
 ---
 
 # Composition Patterns
@@ -69,8 +57,7 @@ Reference these guidelines when:
 
 - `patterns-explicit-variants` - Create explicit variant components instead of
   boolean modes
-- `patterns-children-over-render-props` - Use children for composition instead
-  of renderX props
+- `patterns-children-over-render-props` - Use children for composition
 
 ## Full Compiled Document
 

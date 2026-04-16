@@ -1,23 +1,10 @@
 ---
 name: view-transitions
-description: Guide for implementing smooth, native-feeling animations using React's View Transition API adapted for Solid 2.0. Use this skill whenever the user wants to add page transitions, animate route changes, create shared element animations, animate enter/exit of components, animate list reorder, implement directional (forward/back) navigation animations, or integrate view transitions in TanStack Solid Start. Also use when the user mentions view transitions, `startViewTransition`, `ViewTransition`, transition types, or asks about animating between UI states without third-party animation libraries.
+description: Guide for implementing smooth, native-feeling animations using the View Transition API (`<ViewTransition>` component, `addTransitionType`, and CSS view transition pseudo-elements). Use this skill whenever the user wants to add page transitions, animate route changes, create shared element animations, animate enter/exit of components, animate list reorder, implement directional (forward/back) navigation animations, or integrate view transitions in TanStack Start. Also use when the user mentions view transitions, `startViewTransition`, `ViewTransition`, transition types, or asks about animating between UI states without third-party animation libraries.
 license: MIT
 metadata:
-  author: vercel (adapted for Solid)
   version: "1.0.0"
-  source: "https://github.com/vercel-labs/agent-skills/tree/main/skills/react-view-transitions"
-  imported: "2026-04-16"
-  commit: "73140fc"
-  modified: true
-  modifications:
-    - skill: "react-view-transitions"
-      adapted_for: "Solid 2.0"
-      changes:
-        - "React references → Solid 2.0"
-        - "@tanstack/react-router → @tanstack/solid-router"
-        - "useNavigate from @tanstack/solid-router"
-        - "Solid's startTransition"
-      reason: "Project uses Solid 2.0 + TanStack Solid Router"
+  updated: "2026-04-16"
 ---
 
 # View Transitions
@@ -56,7 +43,7 @@ Reserve directional slides for hierarchical navigation (list → detail) and ord
 ## Availability
 
 - **Solid 2.0:** `ViewTransition` works via `@solidjs/web` package. Ensure you're on Solid 2.0+.
-- **TanStack Solid Start:** Works out of the box with Vite + TanStack Solid Router.
+- **TanStack Start:** Works out of the box with Vite + TanStack Router.
 - Browser support: Chromium 111+, Firefox 144+, Safari 18.2+. Graceful degradation on unsupported browsers.
 
 ---
@@ -79,7 +66,7 @@ import { ViewTransition } from "@solidjs/web"
 </ViewTransition>
 ```
 
-Solid auto-assigns a unique `view-transition-name` and calls `document.startViewTransition` behind the scenes. Never call `startViewTransition` yourself.
+The framework auto-assigns a unique `view-transition-name` and calls `document.startViewTransition` behind the scenes. Never call `startViewTransition` yourself.
 
 ### Animation Triggers
 
@@ -90,7 +77,7 @@ Solid auto-assigns a unique `view-transition-name` and calls `document.startView
 | **update** | DOM mutations inside a `<ViewTransition>`. With nested VTs, mutation applies to the innermost one |
 | **share**  | Named VT unmounts and another with same `name` mounts in the same Transition                      |
 
-Only `startTransition` from `solid-js` or Suspense-like boundaries activate VTs. Regular signal updates do not animate.
+Only `startTransition` or Suspense-like boundaries activate VTs. Regular signal updates do not animate.
 
 ### Critical Placement Rule
 
@@ -355,9 +342,9 @@ When a parent VT exits, nested VTs inside it do **not** fire their own enter/exi
 
 ---
 
-## TanStack Solid Start Integration
+## TanStack Start Integration
 
-For TanStack Solid Start setup (Vite + TanStack Solid Router patterns, file-based routing, `useNavigate` with `startTransition`, Server Functions), see `references/tanstack-start.md`.
+For TanStack Start setup (Vite + TanStack Router patterns, file-based routing, `useNavigate` with `startTransition`, Server Functions), see `references/tanstack-start.md`.
 
 ---
 
@@ -372,7 +359,7 @@ Always add the reduced motion CSS from `references/css-recipes.md` to your globa
 - **`references/implementation.md`** — Step-by-step implementation workflow.
 - **`references/patterns.md`** — Patterns, animation timing, events API, troubleshooting.
 - **`references/css-recipes.md`** — Ready-to-use CSS animation recipes.
-- **`references/tanstack-start.md`** — TanStack Solid Start patterns with Vite and TanStack Solid Router.
+- **`references/tanstack-start.md`** — TanStack Solid Start patterns with Vite and TanStack Router.
 
 ## Full Compiled Document
 

@@ -486,17 +486,3 @@ app/
 │   └── DirectionalTransition.tsx  # Reusable directional VT wrapper
 └── app.tsx                  # App entry
 ```
-
----
-
-## Key Differences from React View Transitions
-
-| React | Solid 2.0 |
-|-------|-----------|
-| `import { ViewTransition } from "react"` | `import { ViewTransition } from "@solidjs/web"` |
-| `import { startTransition } from "react"` | `import { startTransition } from "solid-js"` |
-| `Suspense` for async boundaries | `Show` for conditional rendering |
-| `useNavigate` from `@tanstack/react-router` | `useNavigate` from `@tanstack/solid-router` |
-| Components re-render | Components run once, signals update DOM |
-
-The View Transition API itself is browser-native and works the same way in both frameworks — only the component integration differs.
