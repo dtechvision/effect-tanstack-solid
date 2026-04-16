@@ -7,7 +7,8 @@
 ```tsx
 "use client"
 
-import { Suspense, useDeferredValue, useState, ViewTransition } from "react"
+import { createSignal, startTransition, Show, ViewTransition } from "solid-js"
+import { ViewTransition } from "@solidjs/web"
 
 export default function SearchableGrid({ itemsPromise }) {
   const [search, setSearch] = useState("")
@@ -53,7 +54,8 @@ Toggle between grid and detail view with shared element morph:
 ```tsx
 "use client"
 
-import { startTransition, useRef, useState, ViewTransition } from "react"
+import { createSignal, startTransition, ViewTransition } from "solid-js"
+import { ViewTransition } from "@solidjs/web"
 
 export default function ItemGrid({ items }) {
   const [expandedId, setExpandedId] = useState(null)
