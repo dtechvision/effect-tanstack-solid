@@ -1,0 +1,4 @@
+- 2026-04-15: In this Solid + Effect atom setup, `For` items are accessors (`item()`), not raw values, and async atoms expose `AsyncResult` that must be narrowed before accessing `.value`.
+- 2026-04-15: In this repository's Solid toolchain, prefer direct prop shapes over React-style helper assumptions; event and element typing should be explicit for `form` vs `div` components.
+- 2026-04-15: For `node - <<'NODE'` scripts in this ESM project, use ESM imports when top-level `await` is needed.
+- 2026-04-15: PGlite test determinism requires resetting cached boot state between tests when the backing directory is deleted/recreated.

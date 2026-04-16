@@ -1,0 +1,34 @@
+{
+  "name": "effect-tanstack-solid",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@effect/atom-solid": "file:../atom-solid",
+    "@electric-sql/pglite": "^0.3.7",
+    "@solidjs/web": "^2.0.0-beta.5",
+    "@tanstack/solid-router": "^2.0.0-beta.11",
+    "@tanstack/solid-router-devtools": "^2.0.0-beta.8",
+    "@tanstack/solid-start": "^2.0.0-beta.12",
+    "drizzle-orm": "^0.45.1",
+    "effect": "4.0.0-beta.47",
+    "postgres": "^3.4.7",
+    "solid-js": "^2.0.0-beta.5"
+  },
+  "devDependencies": {
+    "@solidjs/testing-library": "^0.8.10",
+    "jsdom": "^27.1.0",
+    "react-grab": "^0.1.32",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.7",
+    "vite-plugin-solid": "^3.0.0-next.4",
+    "vitest": "^3.2.4"
+  }
+}

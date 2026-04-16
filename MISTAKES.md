@@ -1,0 +1,4 @@
+- 2026-04-15: I initially switched API access to `createServerFn` inside the atom client module. That made atom tests hang because those functions are transformed through the Start runtime and are not reliable as plain unit-level dependencies. Fixed by restoring fetch-based API calls and route handlers.
+- 2026-04-15: I assumed `splitProps` was exported from `solid-js` in this setup while porting design-system primitives. Build and typecheck failed; fixed by using simpler typed props and explicit element branches.
+- 2026-04-15: I mixed `require(...)` with top-level `await` in a one-off Node smoke script, causing an ESM/CJS ambiguity error. Fixed by using ESM `import` syntax consistently.
+- 2026-04-15: I initially created the PGlite directory using `dirname(dataDir)`, which produced transient DB roots and broke table visibility between operations. Fixed by creating `dataDir` directly and adding a repository reset helper for tests.
