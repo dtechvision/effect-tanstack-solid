@@ -1,7 +1,9 @@
+/**
+ * Dashboard context type - provides snapshot data and refetch capability.
+ */
 import { createContext, useContext, type JSX, type Accessor, createSignal } from "solid-js"
 import { 
   runApi, 
-  apiClient, 
   toError, 
   isRpcError, 
   isBusinessError, 
@@ -11,9 +13,6 @@ import {
 } from "../../api/api-client"
 import type { TodoDashboardSnapshot, TodoStats, TodoGroup, Todo } from "../../api/todo-schema"
 
-/**
- * Dashboard context type - provides snapshot data and refetch capability.
- */
 type DashboardContextValue = {
   /** The current dashboard snapshot (undefined while loading) */
   snapshot: Accessor<TodoDashboardSnapshot | undefined>
@@ -77,7 +76,7 @@ export function DashboardProvider(props: { readonly children: JSX.Element }) {
 export function useDashboard(): DashboardContextValue {
   const ctx = useContext(DashboardContext)
   if (!ctx) {
-    throw new Error("useDashboard must be used within a DashboardProvider")
+    throw new Error("useDashboard must be used within DashboardProvider")
   }
   return ctx
 }

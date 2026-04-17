@@ -8,10 +8,11 @@
     "preview": "vite preview",
     "check": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "postinstall": "node scripts/patch-atom-solid.mjs"
   },
   "dependencies": {
-    "@effect/atom-solid": "file:../atom-solid",
+    "@effect/atom-solid": "4.0.0-beta.46",
     "@electric-sql/pglite": "^0.3.7",
     "@solidjs/web": "^2.0.0-beta.5",
     "@tanstack/solid-router": "^2.0.0-beta.11",
