@@ -45,11 +45,13 @@ export function DashboardProvider(props: { readonly children: JSX.Element }) {
   // Derive loading and error states from Effect AsyncResult
   const loading = () => {
     const s = snapshotResult()
+    if (!s) return true
     return AsyncResult.isWaiting(s)
   }
   
   const error = () => {
     const s = snapshotResult()
+    if (!s) return undefined
     if (AsyncResult.isFailure(s)) {
       return new Error(String(s.cause))
     }
@@ -59,6 +61,7 @@ export function DashboardProvider(props: { readonly children: JSX.Element }) {
   // Get raw snapshot value on success
   const getSnapshot = () => {
     const s = snapshotResult()
+    if (!s) return undefined
     return AsyncResult.isSuccess(s) ? s.value : undefined
   }
 
