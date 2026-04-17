@@ -1,36 +1,21 @@
 /**
  * Dashboard context - Effect-native reactive state.
  * 
- * Uses Solid 2.0 signals + Effect for data fetching.
- * The atom hooks have hydration issues, so we use the reliable context pattern.
+ * Uses Effect atoms for both server data and local UI state.
  */
-import { createContext, useContext, type JSX, type Accessor, createSignal } from "solid-js"
-import type { DashboardFilter } from "./dashboard-filters"
+import { createContext, useContext, type JSX, type Accessor } from "solid-js"
 import * as Effect from "effect/Effect"
-import { ApiClient } from "../../api/api-client"
+import * as Atom from "effect/unstable/reactivity/Atom"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import type { TodoDashboardSnapshot, TodoStats, TodoGroup, Todo, CreateTodoInput, UpdateTodoInput } from "../../api/todo-schema"
+import { useAtom, useAtomRefresh, useAtomValue } from "@effect/atom-solid"
+import * as Atoms from "../../atoms"
+import type { DashboardFilter } from "./dashboard-filters"
 
-// ============================================
-// Effect Actions
-// ============================================
-
-export const createTodo = (input: CreateTodoInput): Effect.Effect<TodoDashboardSnapshot, Error, never> =>
-  Effect.gen(function*() {
-    const api = yield* ApiClient
-    return yield* api.rpc.todos_create({ input })
-  }).pipe(Effect.provide(ApiClient.layer))
-
-export const updateTodo = (id: number, input: UpdateTodoInput): Effect.Effect<TodoDashboardSnapshot, Error, never> =>
-  Effect.gen(function*() {
-    const api = yield* ApiClient
-    return yield* api.rpc.todos_update({ id, input })
-  }).pipe(Effect.provide(ApiClient.layer))
-
-export const deleteTodo = (id: number): Effect.Effect<TodoDashboardSnapshot, Error, never> =>
-  Effect.gen(function*() {
-    const api = yield* ApiClient
-    return yield* api.rpc.todos_remove({ id })
-  }).pipe(Effect.provide(ApiClient.layer))
+// Re-export actions
+export const createTodo = Atoms.createTodo
+export const updateTodo = Atoms.updateTodo  
+export const deleteTodo = Atoms.deleteTodo
 
 // ============================================
 // Context Implementation
@@ -48,42 +33,42 @@ type DashboardContextValue = {
 const DashboardContext = createContext<DashboardContextValue>()
 
 export function DashboardProvider(props: { readonly children: JSX.Element }) {
-  const [snapshot, setSnapshot] = createSignal<TodoDashboardSnapshot | undefined>(undefined)
-  const [loading, setLoading] = createSignal(true)
-  const [error, setError] = createSignal<Error | undefined>(undefined)
-  const [activeFilter, setActiveFilterRaw] = createSignal<DashboardFilter>("all")
+  // dashboardSnapshotAtom is read-only (runtime.atom creates AsyncResult atoms)
+  const snapshotResult = useAtomValue(() => Atoms.dashboardSnapshotAtom)
   
-  const setActiveFilter = setActiveFilterRaw
-
-  const fetchData = async () => {
-    setLoading(true)
-    setError(undefined)
-    
-    const program = Effect.gen(function*() {
-      const api = yield* ApiClient
-      return yield* api.rpc.todos_snapshot()
-    }).pipe(Effect.provide(ApiClient.layer))
-    
-    try {
-      const data = await Effect.runPromise(program)
-      setSnapshot(() => data)
-    } catch (err) {
-      setError(() => err instanceof Error ? err : new Error(String(err)))
-    } finally {
-      setLoading(false)
+  // activeFilterAtom is writable (Atom.make creates writable atoms)
+  const [filterValue, setFilter] = useAtom(() => Atoms.activeFilterAtom)
+  
+  // Refresh function for the snapshot
+  const refreshSnapshot = useAtomRefresh(() => Atoms.dashboardSnapshotAtom)
+  
+  // Derive loading and error states from Effect AsyncResult
+  const loading = () => {
+    const s = snapshotResult()
+    return AsyncResult.isWaiting(s)
+  }
+  
+  const error = () => {
+    const s = snapshotResult()
+    if (AsyncResult.isFailure(s)) {
+      return new Error(String(s.cause))
     }
+    return undefined
+  }
+  
+  // Get raw snapshot value on success
+  const getSnapshot = () => {
+    const s = snapshotResult()
+    return AsyncResult.isSuccess(s) ? s.value : undefined
   }
 
-  // Fetch on mount
-  void fetchData()
-
   const value: DashboardContextValue = {
-    snapshot,
+    snapshot: getSnapshot,
     loading,
     error,
-    refetch: fetchData,
-    activeFilter,
-    setActiveFilter
+    refetch: refreshSnapshot,
+    activeFilter: filterValue,
+    setActiveFilter: setFilter
   }
 
   const Provider = DashboardContext as unknown as (props: { value: DashboardContextValue; children: JSX.Element }) => JSX.Element

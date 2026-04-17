@@ -8,6 +8,7 @@ import * as Atom from "effect/unstable/reactivity/Atom"
 import * as Effect from "effect/Effect"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import { ApiClient } from "./api/api-client"
+import { dashboardFilterKeys } from "./routes/-index/dashboard-filters"
 import type { 
   TodoDashboardSnapshot, 
   CreateTodoInput, 
@@ -57,6 +58,18 @@ export const TodoDashboardSnapshotSchema = Schema.Struct({
   stats: TodoStatsSchema,
   groups: Schema.Array(TodoGroupSchema),
 })
+
+// ============================================
+// Filter State Atom
+// ============================================
+
+export type DashboardFilter = typeof dashboardFilterKeys[number]
+
+/**
+ * Writable atom for the active dashboard filter.
+ * This is local UI state, not server data, so we use a simple writable atom.
+ */
+export const activeFilterAtom = Atom.make<DashboardFilter>("all")
 
 // ============================================
 // Core Data Atoms
