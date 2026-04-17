@@ -9,7 +9,14 @@ import { TextField } from "../../design-system/components/TextField"
 import { Expand } from "../../design-system/primitives/Expand"
 import { Inline } from "../../design-system/primitives/Inline"
 import { Stack } from "../../design-system/primitives/Stack"
-import { useDashboard, updateTodoRpc, deleteTodoRpc, isRpcError, toError } from "./dashboard-context"
+import { 
+  useDashboard, 
+  updateTodoRpc, 
+  deleteTodoRpc,
+  createErrorMessage,
+  isNetworkError,
+  logError
+} from "./dashboard-context"
 import { formatTodoDate, parseTodoDateInput, todayTodoDate } from "./todo-date"
 
 const dueTone = (todo: Todo): "accent" | "danger" | "success" | "neutral" => {
@@ -26,65 +33,99 @@ const dueLabel = (todo: Todo): string => {
 
 const updatedLabel = (todo: Todo): string => `Updated ${new Date(todo.updatedAt).toLocaleString()}`
 
+/**
+ * Individual todo item component with full error handling.
+ * 
+ * Error handling features:
+ * - Network errors: Show retry option
+ * - Business errors (not found): Inform user
+ * - Generic errors: Display message with refresh option
+ * - Error logging: Full context preserved in console
+ */
 export function TodoItem(props: { readonly todo: Todo }) {
   const [isEditing, setIsEditing] = createSignal(false)
   const [editTitle, setEditTitle] = createSignal(props.todo.title)
   const [editDueDate, setEditDueDate] = createSignal(props.todo.dueDate ?? "")
   const [isLoading, setIsLoading] = createSignal(false)
-  const [error, setError] = createSignal<string | null>(null)
+  const [errorMessage, setErrorMessage] = createSignal<string | null>(null)
+  const [isRetryable, setIsRetryable] = createSignal(false)
   const { refetch } = useDashboard()
 
-  const handleToggle = async () => {
+  /**
+   * Handle async operation with comprehensive error handling.
+   * 
+   * Pattern:
+   * 1. Clear previous error state
+   * 2. Set loading state
+   * 3. Execute operation
+   * 4. On success: refresh dashboard
+   * 5. On error: classify, log, and display appropriate message
+   * 6. Always: clear loading state
+   */
+  const handleOperation = async (
+    operation: () => Promise<void>,
+    context: string
+  ) => {
+    setErrorMessage(null)
+    setIsRetryable(false)
     setIsLoading(true)
-    setError(null)
+    
     try {
-      await updateTodoRpc(props.todo.id, { completed: !props.todo.completed })
+      await operation()
+      // Success: refresh dashboard to show updated state
       refetch()
     } catch (err) {
-      const error = toError(err)
-      setError(error.message)
+      // Error: classify and handle appropriately
+      logError(context, err)
+      
+      // Check if this is a retryable network error
+      if (isNetworkError(err)) {
+        setIsRetryable(true)
+      }
+      
+      // Create user-friendly message
+      setErrorMessage(createErrorMessage(err))
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleDelete = async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      await deleteTodoRpc(props.todo.id)
-      refetch()
-    } catch (err) {
-      const error = toError(err)
-      setError(error.message)
-    } finally {
-      setIsLoading(false)
-    }
+  const handleToggle = () => {
+    handleOperation(
+      async () => {
+        await updateTodoRpc(props.todo.id, { completed: !props.todo.completed })
+      },
+      `TodoItem.toggle(${props.todo.id})`
+    )
   }
 
-  const handleSaveEdit = async () => {
+  const handleDelete = () => {
+    handleOperation(
+      async () => {
+        await deleteTodoRpc(props.todo.id)
+      },
+      `TodoItem.delete(${props.todo.id})`
+    )
+  }
+
+  const handleSaveEdit = () => {
     const title = editTitle().trim()
     if (title.length === 0) return
 
-    setIsLoading(true)
-    setError(null)
-    try {
-      await updateTodoRpc(props.todo.id, {
-        title,
-        dueDate: parseTodoDateInput(editDueDate())
-      })
-      setIsEditing(false)
-      refetch()
-    } catch (err) {
-      const error = toError(err)
-      setError(error.message)
-    } finally {
-      setIsLoading(false)
-    }
+    handleOperation(
+      async () => {
+        await updateTodoRpc(props.todo.id, {
+          title,
+          dueDate: parseTodoDateInput(editDueDate())
+        })
+        setIsEditing(false)
+      },
+      `TodoItem.saveEdit(${props.todo.id})`
+    )
   }
 
   return (
-    <Card as="article" tone={error() ? "danger" : "default"}>
+    <Card as="article" tone={errorMessage() ? "danger" : "default"}>
       <Stack gap="m">
         <Inline align="between" wrap>
           <Expand>
@@ -128,7 +169,8 @@ export function TodoItem(props: { readonly todo: Todo }) {
                   setEditTitle(props.todo.title)
                   setEditDueDate(props.todo.dueDate ?? "")
                   setIsEditing(false)
-                  setError(null)
+                  setErrorMessage(null)
+                  setIsRetryable(false)
                 }}
               >
                 Cancel
@@ -137,12 +179,32 @@ export function TodoItem(props: { readonly todo: Todo }) {
           </form>
         </Show>
 
-        <Show when={error()}>
+        {/* Error Display with Retry Option */}
+        <Show when={errorMessage()}>
           <Inline gap="xs" wrap>
-            <Text tone="danger">{error()}</Text>
-            <Button variant="secondary" onClick={() => { setError(null); refetch() }}>
-              Refresh dashboard
-            </Button>
+            <Text tone="danger">{errorMessage()}</Text>
+            
+            {isRetryable() ? (
+              <Button 
+                variant="secondary" 
+                onClick={() => { 
+                  setErrorMessage(null)
+                  refetch() 
+                }}
+              >
+                Retry
+              </Button>
+            ) : (
+              <Button 
+                variant="secondary" 
+                onClick={() => { 
+                  setErrorMessage(null)
+                  refetch() 
+                }}
+              >
+                Refresh dashboard
+              </Button>
+            )}
           </Inline>
         </Show>
       </Stack>

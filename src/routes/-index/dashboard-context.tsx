@@ -1,5 +1,14 @@
 import { createContext, useContext, type JSX, type Accessor, createSignal } from "solid-js"
-import { runApi, apiClient, toError } from "../../api/api-client"
+import { 
+  runApi, 
+  apiClient, 
+  toError, 
+  isRpcError, 
+  isBusinessError, 
+  isNetworkError,
+  createErrorMessage,
+  logError 
+} from "../../api/api-client"
 import type { TodoDashboardSnapshot, TodoStats, TodoGroup, Todo } from "../../api/todo-schema"
 
 /**
@@ -127,15 +136,12 @@ export async function deleteTodoRpc(id: number): Promise<TodoDashboardSnapshot> 
   return runApi(client => client.rpc.todos_remove({ id }))
 }
 
-/**
- * Type guard for RPC client errors.
- */
-export function isRpcError(error: unknown): error is { _tag: "RpcClientError" } {
-  return error !== null && 
-    typeof error === "object" && 
-    "_tag" in error && 
-    error._tag === "RpcClientError"
+// Re-export error utilities for convenience
+export { 
+  toError, 
+  isRpcError, 
+  isBusinessError, 
+  isNetworkError,
+  createErrorMessage,
+  logError 
 }
-
-// Re-export toError for convenience
-export { toError }
