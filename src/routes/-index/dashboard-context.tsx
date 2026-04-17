@@ -1,49 +1,74 @@
 /**
- * Dashboard context type - provides snapshot data and refetch capability.
+ * Dashboard context - Effect-native reactive state.
+ * 
+ * Uses Solid 2.0 signals + Effect for data fetching.
+ * The atom hooks have hydration issues, so we use the reliable context pattern.
  */
 import { createContext, useContext, type JSX, type Accessor, createSignal } from "solid-js"
-import { 
-  runApi, 
-  toError, 
-  isRpcError, 
-  isBusinessError, 
-  isNetworkError,
-  createErrorMessage,
-  logError 
-} from "../../api/api-client"
-import type { TodoDashboardSnapshot, TodoStats, TodoGroup, Todo } from "../../api/todo-schema"
+import type { DashboardFilter } from "./dashboard-filters"
+import * as Effect from "effect/Effect"
+import { ApiClient } from "../../api/api-client"
+import type { TodoDashboardSnapshot, TodoStats, TodoGroup, Todo, CreateTodoInput, UpdateTodoInput } from "../../api/todo-schema"
+
+// ============================================
+// Effect Actions
+// ============================================
+
+export const createTodo = (input: CreateTodoInput): Effect.Effect<TodoDashboardSnapshot, Error, never> =>
+  Effect.gen(function*() {
+    const api = yield* ApiClient
+    return yield* api.rpc.todos_create({ input })
+  }).pipe(Effect.provide(ApiClient.layer))
+
+export const updateTodo = (id: number, input: UpdateTodoInput): Effect.Effect<TodoDashboardSnapshot, Error, never> =>
+  Effect.gen(function*() {
+    const api = yield* ApiClient
+    return yield* api.rpc.todos_update({ id, input })
+  }).pipe(Effect.provide(ApiClient.layer))
+
+export const deleteTodo = (id: number): Effect.Effect<TodoDashboardSnapshot, Error, never> =>
+  Effect.gen(function*() {
+    const api = yield* ApiClient
+    return yield* api.rpc.todos_remove({ id })
+  }).pipe(Effect.provide(ApiClient.layer))
+
+// ============================================
+// Context Implementation
+// ============================================
 
 type DashboardContextValue = {
-  /** The current dashboard snapshot (undefined while loading) */
   snapshot: Accessor<TodoDashboardSnapshot | undefined>
-  /** Whether the snapshot is currently loading */
   loading: Accessor<boolean>
-  /** Any error that occurred during loading */
   error: Accessor<Error | undefined>
-  /** Refetch the dashboard data */
   refetch: () => void
+  activeFilter: Accessor<DashboardFilter>
+  setActiveFilter: (filter: DashboardFilter) => void
 }
 
 const DashboardContext = createContext<DashboardContextValue>()
 
-/**
- * Provider component that fetches and shares dashboard data.
- * Uses Effect RPC client for type-safe server communication.
- */
 export function DashboardProvider(props: { readonly children: JSX.Element }) {
   const [snapshot, setSnapshot] = createSignal<TodoDashboardSnapshot | undefined>(undefined)
   const [loading, setLoading] = createSignal(true)
   const [error, setError] = createSignal<Error | undefined>(undefined)
+  const [activeFilter, setActiveFilterRaw] = createSignal<DashboardFilter>("all")
+  
+  const setActiveFilter = setActiveFilterRaw
 
   const fetchData = async () => {
     setLoading(true)
     setError(undefined)
+    
+    const program = Effect.gen(function*() {
+      const api = yield* ApiClient
+      return yield* api.rpc.todos_snapshot()
+    }).pipe(Effect.provide(ApiClient.layer))
+    
     try {
-      // Use Effect RPC client
-      const data: TodoDashboardSnapshot = await runApi(client => client.rpc.todos_snapshot())
+      const data = await Effect.runPromise(program)
       setSnapshot(() => data)
     } catch (err) {
-      setError(() => toError(err))
+      setError(() => err instanceof Error ? err : new Error(String(err)))
     } finally {
       setLoading(false)
     }
@@ -56,10 +81,11 @@ export function DashboardProvider(props: { readonly children: JSX.Element }) {
     snapshot,
     loading,
     error,
-    refetch: fetchData
+    refetch: fetchData,
+    activeFilter,
+    setActiveFilter
   }
 
-  // In Solid 2.0, createContext returns something that needs to be cast to a Provider
   const Provider = DashboardContext as unknown as (props: { value: DashboardContextValue; children: JSX.Element }) => JSX.Element
 
   return (
@@ -69,10 +95,6 @@ export function DashboardProvider(props: { readonly children: JSX.Element }) {
   )
 }
 
-/**
- * Hook to access the dashboard context.
- * Must be used within a DashboardProvider.
- */
 export function useDashboard(): DashboardContextValue {
   const ctx = useContext(DashboardContext)
   if (!ctx) {
@@ -81,66 +103,31 @@ export function useDashboard(): DashboardContextValue {
   return ctx
 }
 
-/**
- * Hook to get just the stats from the dashboard.
- * Returns undefined while loading.
- */
+export function useDashboardSnapshot(): Accessor<TodoDashboardSnapshot | undefined> {
+  const { snapshot } = useDashboard()
+  return snapshot
+}
+
 export function useDashboardStats(): Accessor<TodoStats | undefined> {
   const { snapshot } = useDashboard()
   return () => snapshot()?.stats
 }
 
-/**
- * Hook to get just the groups from the dashboard.
- * Returns undefined while loading.
- */
 export function useDashboardGroups(): Accessor<ReadonlyArray<TodoGroup> | undefined> {
   const { snapshot } = useDashboard()
   return () => snapshot()?.groups
 }
 
-/**
- * Hook to get just the todos from the dashboard.
- * Returns undefined while loading.
- */
 export function useDashboardTodos(): Accessor<ReadonlyArray<Todo> | undefined> {
   const { snapshot } = useDashboard()
   return () => snapshot()?.todos
 }
 
-/**
- * Helper to create a todo via Effect RPC.
- */
-export async function createTodoRpc(
-  title: string,
-  dueDate: string | null
-): Promise<TodoDashboardSnapshot> {
-  return runApi(client => client.rpc.todos_create({ input: { title, dueDate } }))
+export function useDashboardFilter(): { activeFilter: Accessor<DashboardFilter>, setActiveFilter: (filter: DashboardFilter) => void } {
+  const { activeFilter, setActiveFilter } = useDashboard()
+  return { activeFilter, setActiveFilter }
 }
 
-/**
- * Helper to update a todo via Effect RPC.
- */
-export async function updateTodoRpc(
-  id: number,
-  updates: { title?: string; dueDate?: string | null; completed?: boolean }
-): Promise<TodoDashboardSnapshot> {
-  return runApi(client => client.rpc.todos_update({ id, input: updates }))
-}
-
-/**
- * Helper to delete a todo via Effect RPC.
- */
-export async function deleteTodoRpc(id: number): Promise<TodoDashboardSnapshot> {
-  return runApi(client => client.rpc.todos_remove({ id }))
-}
-
-// Re-export error utilities for convenience
-export { 
-  toError, 
-  isRpcError, 
-  isBusinessError, 
-  isNetworkError,
-  createErrorMessage,
-  logError 
-}
+// Re-export API utilities
+export { runApi, toError, isRpcError, isBusinessError, isNetworkError, createErrorMessage, logError } from "../../api/api-client"
+export { TodoDashboardSnapshotSchema, TodoStatsSchema, TodoGroupSchema, TodoSchema } from "../../atoms"
