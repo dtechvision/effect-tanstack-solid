@@ -1,4 +1,5 @@
-import type { TodoGroup } from "../../api/todo-schema"
+import { createMemo, For, Show } from "solid-js"
+import type { Todo, TodoGroup } from "../../api/todo-schema"
 import { Button } from "../../design-system/components/Button"
 import { Card } from "../../design-system/components/Card"
 import { EmptyState } from "../../design-system/components/EmptyState"
@@ -7,82 +8,95 @@ import { Heading } from "../../design-system/components/Heading"
 import { Text } from "../../design-system/components/Text"
 import { Inline } from "../../design-system/primitives/Inline"
 import { Stack } from "../../design-system/primitives/Stack"
-import { useDashboard, useDashboardGroups, useDashboardStats } from "./dashboard-context"
-import { DashboardFilters, type DashboardFilter } from "./dashboard-filters"
+import { useDashboard, useDashboardFilter } from "./dashboard-context"
+import { DashboardFilters } from "./dashboard-filters"
 import { TodoGroupSection } from "./todo-group-section"
+import { todayTodoDate } from "./todo-date"
 
-const filterGroups = (
-  groups: ReadonlyArray<TodoGroup>,
-  filter: DashboardFilter
-): ReadonlyArray<TodoGroup> => {
+/**
+ * Filter individual todos based on the selected filter.
+ */
+function filterTodos(todos: ReadonlyArray<Todo>, filter: string): ReadonlyArray<Todo> {
+  const today = todayTodoDate()
+  
   switch (filter) {
     case "all":
-      return groups
+      return todos
     case "active":
-      return groups.filter((group) => group.key !== "completed")
+      return todos.filter((todo) => !todo.completed)
     case "overdue":
-      return groups.filter((group) => group.key === "overdue")
+      return todos.filter((todo) => !todo.completed && todo.dueDate !== null && todo.dueDate < today)
     case "unscheduled":
-      return groups.filter((group) => group.key === "unscheduled")
+      return todos.filter((todo) => !todo.completed && todo.dueDate === null)
     case "completed":
-      return groups.filter((group) => group.key === "completed")
+      return todos.filter((todo) => todo.completed)
+    default:
+      return todos
   }
 }
 
-type GroupedTodoBoardProps = {
-  readonly activeFilter: DashboardFilter
-  readonly onChangeFilter: (filter: DashboardFilter) => void
+/**
+ * Regroup filtered todos by their category.
+ */
+function groupFilteredTodos(todos: ReadonlyArray<Todo>): ReadonlyArray<TodoGroup> {
+  const today = todayTodoDate()
+  
+  const buckets: Record<string, Array<Todo>> = {
+    overdue: [],
+    today: [],
+    upcoming: [],
+    unscheduled: [],
+    completed: []
+  }
+  
+  for (const todo of todos) {
+    if (todo.completed) {
+      buckets.completed.push(todo)
+    } else if (todo.dueDate === null) {
+      buckets.unscheduled.push(todo)
+    } else if (todo.dueDate < today) {
+      buckets.overdue.push(todo)
+    } else if (todo.dueDate === today) {
+      buckets.today.push(todo)
+    } else {
+      buckets.upcoming.push(todo)
+    }
+  }
+  
+  const groupDefs: Array<{ key: string; label: string }> = [
+    { key: "overdue", label: "Overdue" },
+    { key: "today", label: "Due today" },
+    { key: "upcoming", label: "Upcoming" },
+    { key: "unscheduled", label: "Unscheduled" },
+    { key: "completed", label: "Completed" }
+  ]
+  
+  return groupDefs
+    .map(({ key, label }) => ({
+      key,
+      label,
+      count: buckets[key].length,
+      todos: buckets[key] as readonly Todo[]
+    }))
+    .filter((group) => group.count > 0) as unknown as TodoGroup[]
 }
 
-export function GroupedTodoBoard(props: GroupedTodoBoardProps) {
-  const { loading, error, refetch } = useDashboard()
-  const stats = useDashboardStats()
-  const groups = useDashboardGroups()
+export function GroupedTodoBoard() {
+  const { loading, error, refetch, snapshot } = useDashboard()
+  const { activeFilter, setActiveFilter } = useDashboardFilter()
 
-  // Handle loading state
-  if (loading()) {
-    return (
-      <Card>
-        <Stack gap="l">
-          <Text tone="muted">Loading dashboard views…</Text>
-        </Stack>
-      </Card>
-    )
-  }
+  // Memoized filtered todos - automatically re-computes when activeFilter changes
+  const filteredTodos = createMemo(() => {
+    const snap = snapshot()
+    if (!snap) return []
+    return filterTodos(snap.todos, activeFilter())
+  })
 
-  // Handle error state
-  if (error()) {
-    return (
-      <Card>
-        <Stack gap="l">
-          <ErrorState
-            title="Dashboard views unavailable"
-            description="The grouped board could not be refreshed."
-            actionLabel="Retry"
-            onAction={refetch}
-          />
-        </Stack>
-      </Card>
-    )
-  }
+  // Memoized grouped todos - automatically re-computes when filteredTodos changes
+  const filteredGroups = createMemo(() => groupFilteredTodos(filteredTodos()))
 
-  const currentStats = stats()
-  const currentGroups = groups()
-
-  // If we have no data yet, show loading (shouldn't happen if no error, but safety check)
-  if (!currentStats || !currentGroups) {
-    return (
-      <Card>
-        <Stack gap="l">
-          <Text tone="muted">Loading dashboard views…</Text>
-        </Stack>
-      </Card>
-    )
-  }
-
-  const visibleGroups = filterGroups(currentGroups, props.activeFilter)
-  const populated = visibleGroups.filter((group) => group.count > 0)
-  const totalVisibleTodos = populated.reduce((count, group) => count + group.todos.length, 0)
+  // Total visible count
+  const totalVisible = createMemo(() => filteredTodos().length)
 
   return (
     <Card>
@@ -95,24 +109,43 @@ export function GroupedTodoBoard(props: GroupedTodoBoardProps) {
           <Button variant="secondary" onClick={refetch}>Refresh</Button>
         </Inline>
 
-        <DashboardFilters
-          activeFilter={props.activeFilter}
-          onChange={props.onChangeFilter}
-          stats={currentStats}
-        />
+        <Show when={snapshot()}>
+          {(snap) => (
+            <DashboardFilters
+              activeFilter={activeFilter()}
+              onChange={setActiveFilter}
+              stats={snap().stats}
+            />
+          )}
+        </Show>
 
-        {totalVisibleTodos === 0 ? (
-          <EmptyState
-            title="No work in this view"
-            description="Try another filter or add a task with a due date."
+        <Show when={loading()}>
+          <Text tone="muted">Loading dashboard views…</Text>
+        </Show>
+
+        <Show when={error()}>
+          <ErrorState
+            title="Dashboard views unavailable"
+            description="The grouped board could not be refreshed."
+            actionLabel="Retry"
+            onAction={refetch}
           />
-        ) : (
-          <Stack gap="l">
-            {populated.map((group) => (
-              <TodoGroupSection group={group} />
-            ))}
-          </Stack>
-        )}
+        </Show>
+
+        <Show when={!loading() && !error() && snapshot()}>
+          <Show when={totalVisible() > 0} fallback={
+            <EmptyState
+              title="No work in this view"
+              description={`Filter "${activeFilter()}" shows no tasks. Try another filter or add a task.`}
+            />
+          }>
+            <Stack gap="l">
+              <For each={filteredGroups()}>
+                {(group) => <TodoGroupSection group={group()} />}
+              </For>
+            </Stack>
+          </Show>
+        </Show>
       </Stack>
     </Card>
   )
