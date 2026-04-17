@@ -77,9 +77,9 @@ const ServerRuntimeLive = TodosApplicationLive.pipe(
   Layer.provideMerge(DevConsoleLive)
 )
 
-// Merge RPC router with health check
+// Merge RPC router with server runtime
 // Note: We're not including REST routes here because they're handled separately
-const AppLayer = Layer.mergeAll(RpcRouter).pipe(
+const AppLayer = RpcRouter.pipe(
   Layer.provideMerge(ServerRuntimeLive)
 )
 

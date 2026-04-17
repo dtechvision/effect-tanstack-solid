@@ -11,7 +11,7 @@ export function DashboardStats() {
   return (
     <Show
       when={!loading() && !error() && stats()}
-      fallback={<Text tone="muted">Loading dashboard summary…</Text>}
+      fallback={<Text tone="muted">{loading() ? "Loading dashboard summary…" : error()?.message || "Failed to load"}</Text>}
     >
       {() => {
         const s = stats()!

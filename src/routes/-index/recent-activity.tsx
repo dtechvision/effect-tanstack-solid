@@ -6,6 +6,7 @@ import { Inline } from "../../design-system/primitives/Inline"
 import { Stack } from "../../design-system/primitives/Stack"
 import { useDashboard, useDashboardTodos } from "./dashboard-context"
 import { formatTodoDate } from "./todo-date"
+import type { Todo } from "../../api/todo-schema"
 
 export function RecentActivity() {
   const { loading, error } = useDashboard()
@@ -57,7 +58,7 @@ export function RecentActivity() {
           <Text tone="muted">The canonical list powers this panel and the grouped board.</Text>
         </Stack>
         <Stack gap="s">
-          {currentTodos.slice(0, 5).map((todo) => (
+          {currentTodos.slice(0, 5).map((todo: Todo) => (
             <Stack gap="2xs">
               <Text>{todo.title}</Text>
               <Inline gap="xs" wrap>

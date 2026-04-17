@@ -4,6 +4,9 @@ node_modules
 .npm
 .yarn
 
+# local repo checkouts
+.repo/*
+
 # Build outputs
 dist
 dist-ssr

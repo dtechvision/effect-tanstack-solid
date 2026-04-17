@@ -1,10 +1,8 @@
 import type { CreateTodoInput, TodoDashboardSnapshot, UpdateTodoInput } from "../../api/todo-schema"
 import { type TodoSeed, TodosRepository } from "../../db/todos-repository"
 import {
-  makeTodoEventSinkLayer,
   type TodoEvent,
   TodoEventSink,
-  TodoEventSinkNoop
 } from "./events"
 import {
   deriveTodoDashboardSnapshot,
@@ -21,38 +19,36 @@ const currentTodoDate = Effect.map(
 )
 
 const publishEvent = (event: TodoEvent) =>
-  Effect.flatMap(TodoEventSink.asEffect(), (sink) => sink.publish(event))
+  Effect.gen(function*() {
+    const sink = yield* TodoEventSink
+    return yield* sink.publish(event)
+  })
 
-export const listTodos = Effect
-  .flatMap(TodosRepository.asEffect(), (repository) => repository.list)
-  .pipe(Effect.withSpan("TodosApp.list"))
+export const listTodos = Effect.gen(function*() {
+  const repository = yield* TodosRepository
+  return yield* repository.list
+}).pipe(Effect.withSpan("TodosApp.list"))
 
-export const getTodoStats = Effect
-  .all([TodosRepository.asEffect(), currentTodoDate])
-  .pipe(
-    Effect.flatMap(([repository, today]) =>
-      repository.list.pipe(Effect.map((todos) => deriveTodoStats(todos, today)))
-    ),
-    Effect.withSpan("TodosApp.stats")
-  )
+export const getTodoStats = Effect.gen(function*() {
+  const repository = yield* TodosRepository
+  const today = yield* currentTodoDate
+  const todos = yield* repository.list
+  return deriveTodoStats(todos, today)
+}).pipe(Effect.withSpan("TodosApp.stats"))
 
-export const getTodoDashboardSnapshot = Effect
-  .all([TodosRepository.asEffect(), currentTodoDate])
-  .pipe(
-    Effect.flatMap(([repository, today]) =>
-      repository.list.pipe(Effect.map((todos) => deriveTodoDashboardSnapshot(todos, today)))
-    ),
-    Effect.withSpan("TodosApp.snapshot")
-  )
+export const getTodoDashboardSnapshot = Effect.gen(function*() {
+  const repository = yield* TodosRepository
+  const today = yield* currentTodoDate
+  const todos = yield* repository.list
+  return deriveTodoDashboardSnapshot(todos, today)
+}).pipe(Effect.withSpan("TodosApp.snapshot"))
 
-export const getTodoGroups = Effect
-  .all([TodosRepository.asEffect(), currentTodoDate])
-  .pipe(
-    Effect.flatMap(([repository, today]) =>
-      repository.list.pipe(Effect.map((todos) => deriveTodoGroups(todos, today)))
-    ),
-    Effect.withSpan("TodosApp.groups")
-  )
+export const getTodoGroups = Effect.gen(function*() {
+  const repository = yield* TodosRepository
+  const today = yield* currentTodoDate
+  const todos = yield* repository.list
+  return deriveTodoGroups(todos, today)
+}).pipe(Effect.withSpan("TodosApp.groups"))
 
 export const createTodo = (input: CreateTodoInput) =>
   Effect
@@ -132,11 +128,11 @@ export const removeTodo = (id: number) =>
 
 export const TodosApplicationLive = Layer.mergeAll(
   TodosRepository.layer,
-  TodoEventSinkNoop
+  TodoEventSink.noop
 )
 
 export const layerFromTodoSeed = (seed: TodoSeed) =>
-  Layer.mergeAll(TodosRepository.layerFromSeed(seed), TodoEventSinkNoop)
+  Layer.mergeAll(TodosRepository.layerFromSeed(seed), TodoEventSink.noop)
 
 export const layerFromTodoSeedWithEvents = (
   seed: TodoSeed,
@@ -144,7 +140,7 @@ export const layerFromTodoSeedWithEvents = (
 ) =>
   Layer.mergeAll(
     TodosRepository.layerFromSeed(seed),
-    makeTodoEventSinkLayer(onPublish)
+    TodoEventSink.makeWithHandler(onPublish)
   )
 
 export const runTodosApp = <A, E>(

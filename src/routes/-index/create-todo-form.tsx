@@ -1,13 +1,14 @@
 import type { JSX } from "solid-js"
 import { createSignal, Show } from "solid-js"
+import * as Effect from "effect/Effect"
 import { Card } from "../../design-system/components/Card"
 import { Heading } from "../../design-system/components/Heading"
 import { Text } from "../../design-system/components/Text"
 import { TextField } from "../../design-system/components/TextField"
 import { Stack } from "../../design-system/primitives/Stack"
-import { useDashboard, createTodoRpc, isRpcError, toError } from "./dashboard-context"
-import { parseTodoDateInput } from "./todo-date"
 import { Button } from "../../design-system/components/Button"
+import { parseTodoDateInput } from "./todo-date"
+import { useDashboard, createTodo, toError } from "./dashboard-context"
 
 export function CreateTodoForm() {
   const [title, setTitle] = createSignal("")
@@ -25,13 +26,14 @@ export function CreateTodoForm() {
     setError(null)
 
     try {
-      await createTodoRpc(trimmed, parseTodoDateInput(dueDate()))
+      await Effect.runPromise(
+        createTodo({ title: trimmed, dueDate: parseTodoDateInput(dueDate()) })
+      )
       setTitle("")
       setDueDate("")
       refetch()
     } catch (err) {
-      const error = toError(err)
-      setError(error.message)
+      setError(toError(err).message)
     } finally {
       setIsSubmitting(false)
     }
@@ -60,7 +62,11 @@ export function CreateTodoForm() {
             onInput={(event) => setDueDate(event.currentTarget.value)}
             disabled={isSubmitting()}
           />
-          <Button type="submit" loading={isSubmitting()} disabled={title().trim().length === 0}>
+          <Button 
+            type="submit" 
+            loading={isSubmitting()} 
+            disabled={title().trim().length === 0 || isSubmitting()}
+          >
             Add task
           </Button>
         </form>
