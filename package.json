@@ -9,6 +9,7 @@
     "check": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
+    "validate": "bun run check && bun run test",
     "postinstall": "node scripts/patch-atom-solid.mjs"
   },
   "dependencies": {

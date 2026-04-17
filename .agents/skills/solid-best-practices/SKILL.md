@@ -78,6 +78,7 @@ Reference these guidelines when:
 
 ### 4. Client-Side Data Fetching (MEDIUM-HIGH)
 
+- `client-atom-initial-values` - Pre-seed async atoms with `initialValue` to prevent null dereference
 - `client-tanstack-query-dedup` - Use TanStack Query for automatic deduplication
 - `client-event-listeners` - Deduplicate global event listeners
 - `client-passive-event-listeners` - Use passive listeners for scroll
@@ -117,3 +118,63 @@ Reference these guidelines when:
 4. **Effects track automatically:** No dependency arrays needed
 5. **Functions are stable:** No callback memoization needed
 6. **Show over conditionals:** Explicit conditional rendering with fallback
+
+---
+
+## Effect Atoms with @effect/atom-solid
+
+When using Effect atoms with `@effect/atom-solid`, async atoms initialize to `null` internally before the atom mounts to the registry. Effect's `AsyncResult` type guards (`isWaiting`, `isSuccess`, `isFailure`) access `._tag` directly and crash when passed `null`.
+
+### Pattern: Pre-seed Atoms with useAtomInitialValues
+
+Always pre-seed async atoms with `AsyncResult.initial()` to prevent null dereference:
+
+```tsx
+import { useAtomInitialValues, useAtomValue } from "@effect/atom-solid"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+
+function DashboardProvider(props) {
+  // Pre-seed the atom with Initial state to prevent null dereference
+  useAtomInitialValues([[dashboardSnapshotAtom, AsyncResult.initial(true)]])
+  
+  // Now useAtomValue never returns null - safe to use AsyncResult guards
+  const result = useAtomValue(() => dashboardSnapshotAtom)
+  
+  const loading = () => AsyncResult.isWaiting(result())
+  const error = () => AsyncResult.isFailure(result()) ? result().cause : null
+  
+  return <Provider value={{ loading, error }}>{props.children}</Provider>
+}
+```
+
+### Why This Matters
+
+Without pre-seeding:
+- `useAtomValue` returns `null` initially (Solid signal initializes to null)
+- `AsyncResult.isWaiting(null)` throws "Cannot read properties of null (reading '_tag')"
+- Error occurs during SSR/hydration, caught by TanStack Router as uncaught
+
+With pre-seeding:
+- Atom has valid `AsyncResult.Initial` state from first render
+- Type guards work correctly without null checks
+- No wrapper functions needed
+
+### Validation
+
+Add tests to verify the pattern:
+
+```typescript
+import { expect, test } from "vitest"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+
+test("AsyncResult.initial(true) is valid waiting state", () => {
+  const initial = AsyncResult.initial(true)
+  expect(AsyncResult.isInitial(initial)).toBe(true)
+  expect(AsyncResult.isWaiting(initial)).toBe(true)
+})
+
+test("direct guards throw on null", () => {
+  // Proves why pre-seeding is necessary
+  expect(() => AsyncResult.isWaiting(null)).toThrow()
+})
+```
